@@ -2,21 +2,25 @@ import PropTypes from 'prop-types'
 import { createContext, useState, useEffect } from 'react'
 import { fetchRates } from '../service/rates'
 
-const WalletContext = createContext()
+export const WalletContext = createContext()
 
 export const WalletData = ({ children }) => {
-    const [exchangeRates, setexchangeRates] = useState()
+    const [exchangeRates, setExchangeRates] = useState(null)
 
     useEffect(() => {
         getRates()
     },[])
-    
-    const getRates = () => {
-        fetchRates().then(data => {
-            setexchangeRates(data)
-        })
-    }
 
+    const getRates = async () => {
+        const data = await fetchRates();
+        
+        if (data) {
+            setExchangeRates(data);
+        }
+    }
+    // console.log()
+
+    // console.log(exchangeRates)
 
     const EUR_TO_XAF = (1/exchangeRates.EUR) * exchangeRates.XAF
     const XAF_TO_EUR = (1/exchangeRates.XAF) * exchangeRates.EUR
@@ -40,10 +44,29 @@ export const WalletData = ({ children }) => {
     const exchangeCurrency = (from, to, amount) => {
         const rate = wallet.exchangeRates[from][to]
         const convertedAmount = amount * rate
+        setWallet((prev) => ({
+            ...prev,
+            [from]: prev[from] - amount,
+            [to]: prev[to] + convertedAmount
+        }))
+    }
+
+    const depositCurrency = (currency, amount) => {
+        setWallet((prev) => ({
+            ...prev,
+            [currency]: prev[currency] + amount
+        }))
+    }
+
+    const setDefaultCurrency = (currency) => {
+        setWallet((prevCurrency) => ({
+            ...prevCurrency,
+            defaultCurreny: currency
+        }))
     }
 
     return (
-        <WalletContext.Provider value = {{wallet, setWallet}}>
+        <WalletContext.Provider value = {{wallet, setWallet, exchangeCurrency, depositCurrency, setDefaultCurrency}}>
             { children }
         </WalletContext.Provider>
     )
