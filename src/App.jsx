@@ -4,7 +4,7 @@ function App() {
 
   return (
     <WalletData>
-
+      <h1>Currency Exchange App</h1>
     </WalletData>
   )
 }
