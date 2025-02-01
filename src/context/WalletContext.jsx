@@ -1,89 +1,85 @@
-import PropTypes from 'prop-types'
-import { createContext, useState, useEffect } from 'react'
-import { fetchRates } from '../service/rates'
+import PropTypes from "prop-types";
+import { createContext, useState, useEffect } from "react";
+import { fetchRates } from "../service/rates";
 
-export const WalletContext = createContext()
+export const WalletContext = createContext();
 
 export const WalletData = ({ children }) => {
-    const [exchangeRates, setExchangeRates] = useState([])
+  const [wallet, setWallet] = useState({
+    USD: 0,
+    XAF: 0,
+    EUR: 0,
+    defaultCurrency: "USD",
+    exchangeRates: {
+      USD: { XAF: 600, EUR: 0.81 }, // Default rates (will be updated via API)
+      EUR: { XAF: 740, USD: 1.24 },
+      XAF: { USD: 0.00167, EUR: 0.00135 },
+    },
+  });
 
-    useEffect(() => {
-        getRates()
-    },[])
-
+  useEffect(() => {
     const getRates = async () => {
-        const data = await fetchRates();
-        
-        if (data) {
-            setExchangeRates(data);
-        }
-    }
-    // console.log()
-
-    console.log(exchangeRates)
-
-    const EUR_TO_XAF = (1/exchangeRates.EUR) * (exchangeRates.XAF)
-    const XAF_TO_EUR = (1/exchangeRates.XAF) * (exchangeRates.EUR)
-    const EUR_TO_USD = (1/exchangeRates.EUR)
-    const XAF_TO_USD = (1/exchangeRates.XAF)
-
-    const [wallet, setWallet] = useState(
-        {
-            USD: 0,
-            XAF: 0,
-            EUR: 0,
-            defaultCurreny: 'USD',
-            exchangeRates: {
-                USD: {XAF: exchangeRates.XAF, EUR: exchangeRates.EUR},
-                EUR: {XAF: EUR_TO_XAF, USD: EUR_TO_USD},
-                XAF: {USD: XAF_TO_USD, EUR: XAF_TO_EUR}
-            }
-        }
-    )
-
-    const exchangeCurrency = (from, to, amount) => {
-        const rate = wallet.exchangeRates[from][to]
-        const convertedAmount = amount * rate
+      const data = await fetchRates();
+      if (data) {
         setWallet((prev) => ({
-            ...prev,
-            [from]: prev[from] - amount,
-            [to]: prev[to] + convertedAmount
-        }))
+          ...prev,
+          exchangeRates: {
+            USD: { XAF: data.XAF, EUR: data.EUR },
+            EUR: { XAF: (1 / data.EUR) * data.XAF, USD: 1 / data.EUR },
+            XAF: { USD: 1 / data.XAF, EUR: (1 / data.XAF) * data.EUR },
+          },
+        }));
+      }
+    };
+    getRates();
+  }, []);
+
+  const exchangeCurrency = (from, to, amount) => {
+    if (wallet[from] < amount) {
+      alert("Insufficient balance!");
+      return false; // Prevent exchange if balance is insufficient
     }
 
-    const convertCurrency = (amount, fromCurrency, toCurrency) => {
-        if (fromCurrency === toCurrency) return amount; // No conversion needed
-        return (amount * wallet.exchangeRates[toCurrency]) / wallet.exchangeRates[fromCurrency];
-      };
+    const rate = wallet.exchangeRates[from][to];
+    const convertedAmount = amount * rate;
 
-    const depositCurrency = (currency, amount) => {
-        const amountInDefaultCurrency = convertCurrency(
-            amount,
-            currency,
-            wallet.defaultCurrency
-          );
-      
-          // Update the wallet balance
-          setWallet((prev) => ({
-            ...prev,
-            [wallet.defaultCurrency]: prev[wallet.defaultCurrency] + amountInDefaultCurrency,
-          }));
+    setWallet((prev) => ({
+      ...prev,
+      [from]: prev[from] - amount,
+      [to]: prev[to] + convertedAmount,
+    }));
+
+    return true; // Exchange successful
+  };
+
+  const depositCurrency = (currency, amount) => {
+    if (amount <= 0) {
+      alert("Amount must be greater than 0");
+      return;
     }
 
-    const setDefaultCurrency = (currency) => {
-        setWallet((prevCurrency) => ({
-            ...prevCurrency,
-            defaultCurreny: currency
-        }))
-    }
+    setWallet((prev) => ({
+      ...prev,
+      [currency]: prev[currency] + amount,
+    }));
+  };
 
-    return (
-        <WalletContext.Provider value = {{wallet, setWallet, exchangeCurrency, depositCurrency, setDefaultCurrency}}>
-            { children }
-        </WalletContext.Provider>
-    )
-}
+  const setDefaultCurrency = (currency) => {
+    setWallet((prev) => ({
+      ...prev,
+      defaultCurrency: currency,
+    }));
+  };
+
+  return (
+    <WalletContext.Provider
+      value={{ wallet, exchangeCurrency, depositCurrency, setDefaultCurrency }}
+    >
+      {children}
+    </WalletContext.Provider>
+  );
+};
 
 WalletData.propTypes = {
-    children: PropTypes.node
-}
+  children: PropTypes.node,
+};
