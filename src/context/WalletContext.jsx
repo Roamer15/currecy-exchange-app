@@ -5,7 +5,7 @@ import { fetchRates } from '../service/rates'
 export const WalletContext = createContext()
 
 export const WalletData = ({ children }) => {
-    const [exchangeRates, setExchangeRates] = useState(null)
+    const [exchangeRates, setExchangeRates] = useState([])
 
     useEffect(() => {
         getRates()
@@ -20,12 +20,12 @@ export const WalletData = ({ children }) => {
     }
     // console.log()
 
-    // console.log(exchangeRates)
+    console.log(exchangeRates)
 
-    const EUR_TO_XAF = (1/exchangeRates.EUR) * exchangeRates.XAF
-    const XAF_TO_EUR = (1/exchangeRates.XAF) * exchangeRates.EUR
-    const EUR_TO_USD = 1/exchangeRates.EUR
-    const XAF_TO_USD = 1/exchangeRates.USD
+    const EUR_TO_XAF = (1/exchangeRates.EUR) * (exchangeRates.XAF)
+    const XAF_TO_EUR = (1/exchangeRates.XAF) * (exchangeRates.EUR)
+    const EUR_TO_USD = (1/exchangeRates.EUR)
+    const XAF_TO_USD = (1/exchangeRates.XAF)
 
     const [wallet, setWallet] = useState(
         {
@@ -51,11 +51,23 @@ export const WalletData = ({ children }) => {
         }))
     }
 
+    const convertCurrency = (amount, fromCurrency, toCurrency) => {
+        if (fromCurrency === toCurrency) return amount; // No conversion needed
+        return (amount * wallet.exchangeRates[toCurrency]) / wallet.exchangeRates[fromCurrency];
+      };
+
     const depositCurrency = (currency, amount) => {
-        setWallet((prev) => ({
+        const amountInDefaultCurrency = convertCurrency(
+            amount,
+            currency,
+            wallet.defaultCurrency
+          );
+      
+          // Update the wallet balance
+          setWallet((prev) => ({
             ...prev,
-            [currency]: prev[currency] + amount
-        }))
+            [wallet.defaultCurrency]: prev[wallet.defaultCurrency] + amountInDefaultCurrency,
+          }));
     }
 
     const setDefaultCurrency = (currency) => {

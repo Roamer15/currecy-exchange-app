@@ -7,7 +7,7 @@ export const fetchRates = async () => {
             throw new Error("Rates can't be fetched at the moment")
         }
         const data = await response.json()
-        console.log(data.rates)
+        // console.log(data.rates)
         return data.rates
     }
     catch(error) {
