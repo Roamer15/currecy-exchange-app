@@ -1,35 +1,35 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useContext } from "react";
+import { WalletContext } from "./context/AccountContext";
+import CurrencyCard from "./components/CurrencyCard";
+import ExchangeForm from "./components/ExchangeForm";
+import DepositForm from "./components/DepositForm";
+import DefaultCurrency from "./components/DefaultCurrency";
 
-function App() {
-  const [count, setCount] = useState(0)
+const App = () => {
+  const { wallet } = useContext(WalletContext);
+
+  const totalizedValue = Object.keys(wallet).reduce((total, currency) => {
+    if (currency !== "defaultCurrency") {
+      const rate = wallet.defaultCurrency === "USD" ? 1 : 1 / 1.24; // Simplified logic
+      return total + wallet[currency] * rate;
+    }
+    return total;
+  }, 0);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app">
+      <h1>Currency Exchange App</h1>
+      <DefaultCurrency />
+      <div className="wallet-dashboard">
+        <CurrencyCard currency="USD" />
+        <CurrencyCard currency="EUR" />
+        <CurrencyCard currency="XAF" />
+        <p>Totalized Value: {totalizedValue.toFixed(2)} {wallet.defaultCurrency}</p>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+      <ExchangeForm />
+      <DepositForm />
+    </div>
+  );
+};
 
-export default App
+export default App;
